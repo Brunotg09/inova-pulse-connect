@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
@@ -9,13 +9,14 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
   const { user } = useAuth();
+  const { companySlug } = useParams<{ companySlug: string }>();
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={`/${companySlug}/login`} replace />;
   }
 
   if (adminOnly && user.role !== 'admin') {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={`/${companySlug}/dashboard`} replace />;
   }
 
   return <>{children}</>;

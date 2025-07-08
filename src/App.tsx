@@ -9,6 +9,9 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 // Landing pages
 import Index from "./pages/Index";
 import Pricing from "./components/Pricing";
+import CompanyLanding from "./pages/CompanyLanding";
+import CompanyLogin from "./pages/CompanyLogin";
+import CompanyRegister from "./pages/CompanyRegister";
 
 // Auth pages
 import Login from "./pages/Login";
@@ -54,86 +57,96 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             
+            {/* Company-specific routes */}
+            <Route path="/:companySlug" element={<CompanyLanding />} />
+            <Route path="/:companySlug/login" element={<CompanyLogin />} />
+            <Route path="/:companySlug/register" element={<CompanyRegister />} />
+            
             {/* Protected routes */}
-            <Route path="/dashboard" element={
+            <Route path="/:companySlug/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
             } />
-            <Route path="/trainings" element={
+            <Route path="/:companySlug/trainings" element={
               <ProtectedRoute>
                 <Trainings />
               </ProtectedRoute>
             } />
-            <Route path="/challenges" element={
+            <Route path="/:companySlug/challenges" element={
               <ProtectedRoute>
                 <Challenges />
               </ProtectedRoute>
             } />
-            <Route path="/feedbacks" element={
+            <Route path="/:companySlug/feedbacks" element={
               <ProtectedRoute>
                 <Feedbacks />
               </ProtectedRoute>
             } />
-            <Route path="/suggestions" element={
+            <Route path="/:companySlug/suggestions" element={
               <ProtectedRoute>
                 <Suggestions />
               </ProtectedRoute>
             } />
-            <Route path="/surveys" element={
+            <Route path="/:companySlug/surveys" element={
               <ProtectedRoute>
                 <Surveys />
               </ProtectedRoute>
             } />
-            <Route path="/analytics" element={
+            <Route path="/:companySlug/analytics" element={
               <ProtectedRoute>
                 <Analytics />
               </ProtectedRoute>
             } />
-            <Route path="/profile" element={
+            <Route path="/:companySlug/profile" element={
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
             } />
             
             {/* Team routes */}
-            <Route path="/team" element={
+            <Route path="/:companySlug/team" element={
               <ProtectedRoute>
                 <TeamIndex />
               </ProtectedRoute>
             } />
-            <Route path="/team/challenges" element={
+            <Route path="/:companySlug/team/challenges" element={
               <ProtectedRoute>
                 <TeamChallenges />
               </ProtectedRoute>
             } />
-            <Route path="/team/feedbacks" element={
+            <Route path="/:companySlug/team/feedbacks" element={
               <ProtectedRoute>
                 <TeamFeedbacks />
               </ProtectedRoute>
             } />
-            <Route path="/team/suggestions" element={
+            <Route path="/:companySlug/team/suggestions" element={
               <ProtectedRoute>
                 <TeamSuggestions />
               </ProtectedRoute>
             } />
             
             {/* Admin routes */}
-            <Route path="/admin" element={
+            <Route path="/:companySlug/admin" element={
               <ProtectedRoute adminOnly>
                 <AdminIndex />
               </ProtectedRoute>
             } />
-            <Route path="/admin/teams" element={
+            <Route path="/:companySlug/admin/teams" element={
               <ProtectedRoute adminOnly>
                 <AdminTeams />
               </ProtectedRoute>
             } />
-            <Route path="/admin/settings" element={
+            <Route path="/:companySlug/admin/settings" element={
               <ProtectedRoute adminOnly>
                 <AdminSettings />
               </ProtectedRoute>
             } />
+            
+            {/* Legacy routes - redirect to main landing */}
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/trainings" element={<Navigate to="/" replace />} />
+            <Route path="/challenges" element={<Navigate to="/" replace />} />
 
             {/* 404 route */}
             <Route path="*" element={<NotFound />} />

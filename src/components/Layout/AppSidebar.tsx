@@ -1,4 +1,5 @@
 import { useLocation, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Home,
   Users,
@@ -51,10 +52,14 @@ const analyticsItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
+  const { companySlug } = useParams<{ companySlug: string }>();
   const { user } = useAuth();
   const collapsed = state === 'collapsed';
 
   const isActive = (path: string) => location.pathname === path;
+  
+  // Função para criar URLs com o slug da empresa
+  const createCompanyUrl = (path: string) => `/${companySlug}${path}`;
 
   return (
     <Sidebar className={collapsed ? 'w-14' : 'w-60'} collapsible="offcanvas">
@@ -66,7 +71,7 @@ export function AppSidebar() {
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link to={item.url}>
+                    <Link to={createCompanyUrl(item.url)}>
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </Link>
@@ -84,7 +89,7 @@ export function AppSidebar() {
               {teamItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link to={item.url}>
+                    <Link to={createCompanyUrl(item.url)}>
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </Link>
@@ -102,7 +107,7 @@ export function AppSidebar() {
               {analyticsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link to={item.url}>
+                    <Link to={createCompanyUrl(item.url)}>
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </Link>
@@ -121,7 +126,7 @@ export function AppSidebar() {
                 {adminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <Link to={item.url}>
+                      <Link to={createCompanyUrl(item.url)}>
                         <item.icon className="h-4 w-4" />
                         {!collapsed && <span>{item.title}</span>}
                       </Link>
