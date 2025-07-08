@@ -2,8 +2,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Lightbulb, ThumbsUp, MessageSquare, Plus, TrendingUp, Calendar } from 'lucide-react';
 import { DashboardLayout } from '@/components/Layout/DashboardLayout';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const suggestions = [
   {
@@ -17,7 +24,8 @@ const suggestions = [
     status: 'under-review',
     category: 'Tecnologia',
     date: '2024-01-10',
-    implementation: 'medium'
+    implementation: 'medium',
+    userVoted: false
   },
   {
     id: 2,
@@ -30,7 +38,8 @@ const suggestions = [
     status: 'approved',
     category: 'Cultura',
     date: '2024-01-08',
-    implementation: 'high'
+    implementation: 'high',
+    userVoted: true
   },
   {
     id: 3,
@@ -43,7 +52,8 @@ const suggestions = [
     status: 'implemented',
     category: 'Ambiente',
     date: '2024-01-05',
-    implementation: 'high'
+    implementation: 'high',
+    userVoted: false
   },
   {
     id: 4,
@@ -56,7 +66,8 @@ const suggestions = [
     status: 'voting',
     category: 'Sustentabilidade',
     date: '2024-01-09',
-    implementation: 'low'
+    implementation: 'low',
+    userVoted: false
   },
   {
     id: 5,
@@ -69,11 +80,21 @@ const suggestions = [
     status: 'under-review',
     category: 'Inovação',
     date: '2024-01-07',
-    implementation: 'high'
+    implementation: 'high',
+    userVoted: false
   }
 ];
 
 export default function Suggestions() {
+  const [suggestionList, setSuggestionList] = useState(suggestions);
+  const [newSuggestion, setNewSuggestion] = useState({
+    title: '',
+    description: '',
+    category: ''
+  });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'voting':
@@ -128,6 +149,58 @@ export default function Suggestions() {
     }
   };
 
+  const handleVote = (suggestionId: number) => {
+    setSuggestionList(prev => prev.map(suggestion => 
+      suggestion.id === suggestionId 
+        ? { 
+            ...suggestion, 
+            votes: suggestion.userVoted ? suggestion.votes - 1 : suggestion.votes + 1,
+            userVoted: !suggestion.userVoted
+          }
+        : suggestion
+    ));
+    
+    const suggestion = suggestionList.find(s => s.id === suggestionId);
+    toast({
+      title: suggestion?.userVoted ? "Voto removido!" : "Voto computado!",
+      description: suggestion?.userVoted ? "Seu voto foi removido." : "Obrigado por votar nesta sugestão.",
+    });
+  };
+
+  const handleCreateSuggestion = () => {
+    if (!newSuggestion.title || !newSuggestion.description || !newSuggestion.category) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos para criar a sugestão.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const suggestion = {
+      id: suggestionList.length + 1,
+      title: newSuggestion.title,
+      description: newSuggestion.description,
+      author: 'Você',
+      authorInitials: 'VC',
+      votes: 1,
+      comments: 0,
+      status: 'voting',
+      category: newSuggestion.category,
+      date: new Date().toISOString().split('T')[0],
+      implementation: 'medium',
+      userVoted: true
+    };
+
+    setSuggestionList(prev => [suggestion, ...prev]);
+    setNewSuggestion({ title: '', description: '', category: '' });
+    setIsDialogOpen(false);
+    
+    toast({
+      title: "Sugestão criada!",
+      description: "Sua sugestão foi enviada e está em votação.",
+    });
+  };
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -136,29 +209,80 @@ export default function Suggestions() {
             <h1 className="text-3xl font-bold">Mural de Sugestões</h1>
             <p className="text-muted-foreground">Compartilhe suas ideias e vote nas melhores propostas</p>
           </div>
-          <Button variant="hero">
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Sugestão
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="hero">
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Sugestão
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Nova Sugestão</DialogTitle>
+                <DialogDescription>
+                  Compartilhe sua ideia para melhorar nossa empresa
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Título</Label>
+                  <Input
+                    id="title"
+                    value={newSuggestion.title}
+                    onChange={(e) => setNewSuggestion(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Digite o título da sua sugestão"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Categoria</Label>
+                  <Select value={newSuggestion.category} onValueChange={(value) => setNewSuggestion(prev => ({ ...prev, category: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Tecnologia">Tecnologia</SelectItem>
+                      <SelectItem value="Cultura">Cultura</SelectItem>
+                      <SelectItem value="Ambiente">Ambiente</SelectItem>
+                      <SelectItem value="Sustentabilidade">Sustentabilidade</SelectItem>
+                      <SelectItem value="Inovação">Inovação</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="description">Descrição</Label>
+                  <Textarea
+                    id="description"
+                    value={newSuggestion.description}
+                    onChange={(e) => setNewSuggestion(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Descreva sua sugestão em detalhes"
+                    rows={4}
+                  />
+                </div>
+                <Button onClick={handleCreateSuggestion} className="w-full">
+                  Criar Sugestão
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Estatísticas */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">5</div>
+              <div className="text-2xl font-bold">{suggestionList.length}</div>
               <p className="text-xs text-muted-foreground">Sugestões ativas</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">181</div>
+              <div className="text-2xl font-bold">{suggestionList.reduce((acc, s) => acc + s.votes, 0)}</div>
               <p className="text-xs text-muted-foreground">Total de votos</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">2</div>
+              <div className="text-2xl font-bold">{suggestionList.filter(s => s.status === 'implemented').length}</div>
               <p className="text-xs text-muted-foreground">Implementadas</p>
             </CardContent>
           </Card>
@@ -172,7 +296,7 @@ export default function Suggestions() {
 
         {/* Lista de sugestões */}
         <div className="space-y-4">
-          {suggestions
+          {suggestionList
             .sort((a, b) => b.votes - a.votes)
             .map((suggestion) => (
             <Card key={suggestion.id} className="hover:shadow-lg transition-shadow">
@@ -212,6 +336,7 @@ export default function Suggestions() {
                       variant="outline"
                       size="sm"
                       className="flex items-center gap-1"
+                      onClick={() => handleVote(suggestion.id)}
                     >
                       <ThumbsUp className="h-4 w-4" />
                       {suggestion.votes}
@@ -228,8 +353,12 @@ export default function Suggestions() {
 
                   <div className="flex items-center gap-2">
                     {suggestion.status === 'voting' && (
-                      <Button variant="hero" size="sm">
-                        Votar
+                      <Button 
+                        variant={suggestion.userVoted ? "outline" : "hero"} 
+                        size="sm"
+                        onClick={() => handleVote(suggestion.id)}
+                      >
+                        {suggestion.userVoted ? "Votado" : "Votar"}
                       </Button>
                     )}
                     <Button variant="outline" size="sm">
@@ -256,7 +385,7 @@ export default function Suggestions() {
                 <p className="text-muted-foreground mb-4">
                   Compartilhe sua sugestão e ajude a melhorar nosso ambiente de trabalho
                 </p>
-                <Button variant="hero">
+                <Button variant="hero" onClick={() => setIsDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Criar Nova Sugestão
                 </Button>

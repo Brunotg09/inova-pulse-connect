@@ -18,13 +18,20 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    // Simular usuário logado para desenvolvimento
+    const savedUser = localStorage.getItem('mockUser');
+    if (savedUser) {
+      return JSON.parse(savedUser);
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Mock login - replace with Supabase integration
+      // Mock login com diferentes tipos de usuário
       const mockUser: User = {
         id: '1',
         name: 'João Silva',
@@ -33,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         team_id: '1'
       };
       setUser(mockUser);
+      localStorage.setItem('mockUser', JSON.stringify(mockUser));
     } catch (error) {
       throw error;
     } finally {
@@ -42,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('mockUser');
   };
 
   return (

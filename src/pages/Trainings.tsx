@@ -2,8 +2,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Play, Clock, CheckCircle, Star } from 'lucide-react';
 import { DashboardLayout } from '@/components/Layout/DashboardLayout';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const trainings = [
   {
@@ -14,7 +17,8 @@ const trainings = [
     progress: 100,
     status: 'completed',
     rating: 4.8,
-    modules: 6
+    modules: 6,
+    content: 'Este treinamento aborda os conceitos fundamentais de inovação, incluindo tipos de inovação, processo criativo e como aplicar no dia a dia.'
   },
   {
     id: 2,
@@ -24,7 +28,8 @@ const trainings = [
     progress: 75,
     status: 'in-progress',
     rating: 4.9,
-    modules: 8
+    modules: 8,
+    content: 'Aprenda técnicas de liderança que estimulam a criatividade e inovação em equipes.'
   },
   {
     id: 3,
@@ -34,7 +39,8 @@ const trainings = [
     progress: 0,
     status: 'not-started',
     rating: 4.7,
-    modules: 12
+    modules: 12,
+    content: 'Metodologia completa de Design Thinking com exercícios práticos e estudos de caso.'
   },
   {
     id: 4,
@@ -44,7 +50,8 @@ const trainings = [
     progress: 45,
     status: 'in-progress',
     rating: 4.6,
-    modules: 4
+    modules: 4,
+    content: 'Técnicas para dar e receber feedback de forma construtiva e efetiva.'
   },
   {
     id: 5,
@@ -54,7 +61,8 @@ const trainings = [
     progress: 0,
     status: 'not-started',
     rating: 4.8,
-    modules: 10
+    modules: 10,
+    content: 'Estratégias e ferramentas para implementar mudanças organizacionais com sucesso.'
   },
   {
     id: 6,
@@ -64,11 +72,15 @@ const trainings = [
     progress: 0,
     status: 'not-started',
     rating: 4.5,
-    modules: 5
+    modules: 5,
+    content: 'Ferramentas digitais e técnicas para melhorar a colaboração em equipes remotas.'
   }
 ];
 
 export default function Trainings() {
+  const [trainingList, setTrainingList] = useState(trainings);
+  const { toast } = useToast();
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'default';
@@ -85,6 +97,38 @@ export default function Trainings() {
     }
   };
 
+  const handleStartTraining = (trainingId: number) => {
+    setTrainingList(prev => prev.map(training => 
+      training.id === trainingId 
+        ? { ...training, status: 'in-progress', progress: 10 }
+        : training
+    ));
+    toast({
+      title: "Treinamento iniciado!",
+      description: "Você começou um novo treinamento.",
+    });
+  };
+
+  const handleContinueTraining = (trainingId: number) => {
+    const training = trainingList.find(t => t.id === trainingId);
+    if (training) {
+      const newProgress = Math.min(training.progress + 25, 100);
+      const newStatus = newProgress === 100 ? 'completed' : 'in-progress';
+      
+      setTrainingList(prev => prev.map(t => 
+        t.id === trainingId 
+          ? { ...t, progress: newProgress, status: newStatus }
+          : t
+      ));
+      
+      toast({
+        title: newStatus === 'completed' ? "Treinamento concluído!" : "Progresso salvo!",
+        description: newStatus === 'completed' 
+          ? "Parabéns! Você concluiu o treinamento." 
+          : `Progresso: ${newProgress}%`,
+      });
+    }
+  };
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -97,25 +141,25 @@ export default function Trainings() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">6</div>
+              <div className="text-2xl font-bold">{trainingList.length}</div>
               <p className="text-xs text-muted-foreground">Trilhas disponíveis</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">1</div>
+              <div className="text-2xl font-bold">{trainingList.filter(t => t.status === 'completed').length}</div>
               <p className="text-xs text-muted-foreground">Concluídas</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">2</div>
+              <div className="text-2xl font-bold">{trainingList.filter(t => t.status === 'in-progress').length}</div>
               <p className="text-xs text-muted-foreground">Em andamento</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">340</div>
+              <div className="text-2xl font-bold">{trainingList.reduce((acc, t) => acc + (t.progress * parseInt(t.duration) / 100), 0).toFixed(0)}</div>
               <p className="text-xs text-muted-foreground">Minutos estudados</p>
             </CardContent>
           </Card>
@@ -123,7 +167,7 @@ export default function Trainings() {
 
         {/* Lista de treinamentos */}
         <div className="grid gap-6 md:grid-cols-2">
-          {trainings.map((training) => (
+          {trainingList.map((training) => (
             <Card key={training.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -161,12 +205,39 @@ export default function Trainings() {
 
                 <div className="flex gap-2">
                   {training.status === 'completed' ? (
-                    <Button variant="outline" className="flex-1">
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Revisar
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="flex-1">
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Revisar
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>{training.title}</DialogTitle>
+                          <DialogDescription>
+                            {training.content}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="text-sm">
+                            <strong>Status:</strong> Concluído ✅
+                          </div>
+                          <div className="text-sm">
+                            <strong>Sua avaliação:</strong> {training.rating}/5 ⭐
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   ) : (
-                    <Button variant="hero" className="flex-1">
+                    <Button 
+                      variant="hero" 
+                      className="flex-1"
+                      onClick={() => training.status === 'not-started' 
+                        ? handleStartTraining(training.id)
+                        : handleContinueTraining(training.id)
+                      }
+                    >
                       <Play className="mr-2 h-4 w-4" />
                       {training.status === 'in-progress' ? 'Continuar' : 'Iniciar'}
                     </Button>

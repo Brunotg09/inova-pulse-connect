@@ -2,8 +2,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Trophy, Users, Calendar, ThumbsUp, MessageSquare } from 'lucide-react';
 import { DashboardLayout } from '@/components/Layout/DashboardLayout';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const challenges = [
   {
@@ -16,7 +22,8 @@ const challenges = [
     likes: 45,
     deadline: '2024-01-15',
     category: 'Sustentabilidade',
-    prize: '500 pontos'
+    prize: '500 pontos',
+    userParticipating: false
   },
   {
     id: 2,
@@ -28,7 +35,8 @@ const challenges = [
     likes: 67,
     deadline: '2024-01-10',
     category: 'Tecnologia',
-    prize: '750 pontos'
+    prize: '750 pontos',
+    userParticipating: true
   },
   {
     id: 3,
@@ -41,7 +49,8 @@ const challenges = [
     deadline: '2024-01-05',
     category: 'UX/UI',
     prize: '1000 pontos',
-    winner: 'Maria Silva'
+    winner: 'Maria Silva',
+    userParticipating: false
   },
   {
     id: 4,
@@ -53,11 +62,17 @@ const challenges = [
     likes: 0,
     deadline: '2024-01-20',
     category: 'Comunicação',
-    prize: '400 pontos'
+    prize: '400 pontos',
+    userParticipating: false
   }
 ];
 
 export default function Challenges() {
+  const [challengeList, setChallengeList] = useState(challenges);
+  const [submissionTitle, setSubmissionTitle] = useState('');
+  const [submissionDescription, setSubmissionDescription] = useState('');
+  const { toast } = useToast();
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -83,6 +98,36 @@ export default function Challenges() {
     return colors[category] || 'bg-gray-100 text-gray-800';
   };
 
+  const handleParticipate = (challengeId: number) => {
+    setChallengeList(prev => prev.map(challenge => 
+      challenge.id === challengeId 
+        ? { 
+            ...challenge, 
+            userParticipating: true,
+            participants: challenge.participants + 1,
+            submissions: challenge.submissions + 1
+          }
+        : challenge
+    ));
+    toast({
+      title: "Participação confirmada!",
+      description: "Sua submissão foi enviada com sucesso.",
+    });
+    setSubmissionTitle('');
+    setSubmissionDescription('');
+  };
+
+  const handleVote = (challengeId: number) => {
+    setChallengeList(prev => prev.map(challenge => 
+      challenge.id === challengeId 
+        ? { ...challenge, likes: challenge.likes + 1 }
+        : challenge
+    ));
+    toast({
+      title: "Voto computado!",
+      description: "Obrigado por participar da votação.",
+    });
+  };
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -101,19 +146,19 @@ export default function Challenges() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">4</div>
+              <div className="text-2xl font-bold">{challengeList.filter(c => c.status === 'active').length}</div>
               <p className="text-xs text-muted-foreground">Desafios ativos</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">74</div>
+              <div className="text-2xl font-bold">{challengeList.reduce((acc, c) => acc + c.participants, 0)}</div>
               <p className="text-xs text-muted-foreground">Participantes</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">35</div>
+              <div className="text-2xl font-bold">{challengeList.reduce((acc, c) => acc + c.submissions, 0)}</div>
               <p className="text-xs text-muted-foreground">Submissões</p>
             </CardContent>
           </Card>
@@ -127,7 +172,7 @@ export default function Challenges() {
 
         {/* Lista de desafios */}
         <div className="space-y-4">
-          {challenges.map((challenge) => (
+          {challengeList.map((challenge) => (
             <Card key={challenge.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -135,6 +180,11 @@ export default function Challenges() {
                     <div className="flex items-center gap-2">
                       <CardTitle className="text-xl">{challenge.title}</CardTitle>
                       {getStatusBadge(challenge.status)}
+                      {challenge.userParticipating && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700">
+                          Participando
+                        </Badge>
+                      )}
                     </div>
                     <CardDescription>{challenge.description}</CardDescription>
                   </div>
@@ -176,13 +226,59 @@ export default function Challenges() {
                     )}
                     
                     {challenge.status === 'active' && (
-                      <Button variant="hero">
-                        Participar
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="hero">
+                            Participar
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Participar do Desafio</DialogTitle>
+                            <DialogDescription>
+                              {challenge.title} - {challenge.description}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="title">Título da sua solução</Label>
+                              <Input
+                                id="title"
+                                value={submissionTitle}
+                                onChange={(e) => setSubmissionTitle(e.target.value)}
+                                placeholder="Digite o título da sua ideia"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="description">Descrição</Label>
+                              <Textarea
+                                id="description"
+                                value={submissionDescription}
+                                onChange={(e) => setSubmissionDescription(e.target.value)}
+                                placeholder="Descreva sua solução em detalhes"
+                                rows={4}
+                              />
+                            </div>
+                            <Button 
+                              onClick={() => handleParticipate(challenge.id)}
+                              className="w-full"
+                              disabled={!submissionTitle || !submissionDescription}
+                            >
+                              Enviar Participação
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                    
+                    {challenge.status === 'active' && challenge.userParticipating && (
+                      <Button variant="outline" disabled>
+                        Já participando
                       </Button>
                     )}
                     
                     {challenge.status === 'voting' && (
-                      <Button variant="outline">
+                      <Button variant="outline" onClick={() => handleVote(challenge.id)}>
                         Votar
                       </Button>
                     )}
