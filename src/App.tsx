@@ -1,17 +1,17 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 // Landing pages
-import Index from "./pages/Index";
 import Pricing from "./components/Pricing";
 import CompanyLanding from "./pages/CompanyLanding";
 import CompanyLogin from "./pages/CompanyLogin";
 import CompanyRegister from "./pages/CompanyRegister";
+import Index from "./pages/Index";
 
 // Auth pages
 import Login from "./pages/Login";
@@ -27,9 +27,9 @@ import Surveys from "./pages/Surveys";
 import Trainings from "./pages/Trainings";
 
 // Team pages
-import TeamIndex from "./pages/team/Index";
 import TeamChallenges from "./pages/team/Challenges";
 import TeamFeedbacks from "./pages/team/Feedbacks";
+import TeamIndex from "./pages/team/Index";
 import TeamSuggestions from "./pages/team/Suggestions";
 
 // Admin pages
@@ -38,8 +38,8 @@ import AdminSettings from "./pages/admin/Settings";
 import AdminTeams from "./pages/admin/Teams";
 
 // Other pages
-import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -60,7 +60,10 @@ const App = () => (
             {/* Company-specific routes */}
             <Route path="/:companySlug" element={<CompanyLanding />} />
             <Route path="/:companySlug/login" element={<CompanyLogin />} />
-            <Route path="/:companySlug/register" element={<CompanyRegister />} />
+            <Route
+              path="/:companySlug/register"
+              element={<CompanyRegister />}
+            />
 
             {/* Protected routes */}
             <Route

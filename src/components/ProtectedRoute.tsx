@@ -1,13 +1,16 @@
-import { ReactNode } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/AuthContext";
+import { ReactNode } from "react";
+import { Navigate, useParams } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: ReactNode;
   adminOnly?: boolean;
 }
 
-export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  adminOnly = false,
+}: ProtectedRouteProps) {
   const { user } = useAuth();
   const { companySlug } = useParams<{ companySlug: string }>();
 
@@ -15,7 +18,7 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
     return <Navigate to={`/${companySlug}/login`} replace />;
   }
 
-  if (adminOnly && user.role !== 'admin') {
+  if (adminOnly && user.role !== "admin") {
     return <Navigate to={`/${companySlug}/dashboard`} replace />;
   }
 
