@@ -4,60 +4,21 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Heart, Frown, Meh, Smile, Calendar, User } from 'lucide-react';
 import { DashboardLayout } from '@/components/Layout/DashboardLayout';
-
-const feedbacks = {
-  received: [
-    {
-      id: 1,
-      type: 'clima',
-      content: 'Excelente apresentação no projeto X! Muito clara e bem estruturada.',
-      mood: 'positive',
-      from: 'Ana Santos',
-      date: '2024-01-10',
-      category: 'Apresentação'
-    },
-    {
-      id: 2,
-      type: '360',
-      content: 'Poderia melhorar a comunicação em reuniões, às vezes as ideias ficam confusas.',
-      mood: 'neutral',
-      from: 'Carlos Silva',
-      date: '2024-01-09',
-      category: 'Comunicação'
-    },
-    {
-      id: 3,
-      type: 'tarefa',
-      content: 'Sempre muito colaborativo e disposto a ajudar a equipe.',
-      mood: 'positive',
-      from: 'Maria Costa',
-      date: '2024-01-08',
-      category: 'Colaboração'
-    }
-  ],
-  given: [
-    {
-      id: 4,
-      type: 'clima',
-      content: 'Adorei a nova organização do espaço de trabalho!',
-      mood: 'positive',
-      to: 'Equipe RH',
-      date: '2024-01-10',
-      category: 'Ambiente'
-    },
-    {
-      id: 5,
-      type: '360',
-      content: 'Sugestão: mais tempo para discussão nas reuniões de sprint.',
-      mood: 'neutral',
-      to: 'João Manager',
-      date: '2024-01-07',
-      category: 'Processos'
-    }
-  ]
-};
+import { useAuth } from '@/contexts/AuthContext';
+import { MockDatabase } from '@/data/mockData';
 
 export default function Feedbacks() {
+  const { user, company } = useAuth();
+  
+  // Buscar feedbacks da empresa
+  const allFeedbacks = company ? MockDatabase.getFeedbacksByCompany(company.id) : [];
+  
+  // Separar feedbacks recebidos e dados
+  const feedbacks = {
+    received: allFeedbacks.filter(f => f.to_user_id === user?.id),
+    given: allFeedbacks.filter(f => f.from_user_id === user?.id)
+  };
+
   const getMoodIcon = (mood: string) => {
     switch (mood) {
       case 'positive':
@@ -161,9 +122,9 @@ export default function Feedbacks() {
                       </div>
                       <CardDescription className="flex items-center gap-2">
                         <User className="h-4 w-4" />
-                        De: {feedback.from}
+                        De: Usuário #{feedback.from_user_id}
                         <Calendar className="h-4 w-4 ml-2" />
-                        {new Date(feedback.date).toLocaleDateString('pt-BR')}
+                        {new Date(feedback.created_at).toLocaleDateString('pt-BR')}
                       </CardDescription>
                     </div>
                   </div>
@@ -190,9 +151,9 @@ export default function Feedbacks() {
                       </div>
                       <CardDescription className="flex items-center gap-2">
                         <User className="h-4 w-4" />
-                        Para: {feedback.to}
+                        Para: Usuário #{feedback.to_user_id || 'Geral'}
                         <Calendar className="h-4 w-4 ml-2" />
-                        {new Date(feedback.date).toLocaleDateString('pt-BR')}
+                        {new Date(feedback.created_at).toLocaleDateString('pt-BR')}
                       </CardDescription>
                     </div>
                   </div>

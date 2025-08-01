@@ -11,89 +11,30 @@ import { Lightbulb, ThumbsUp, MessageSquare, Plus, TrendingUp, Calendar } from '
 import { DashboardLayout } from '@/components/Layout/DashboardLayout';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-
-const suggestions = [
-  {
-    id: 1,
-    title: 'App mobile para feedback instantâneo',
-    description: 'Desenvolver um aplicativo móvel que permita dar feedback em tempo real sobre reuniões, processos e ambiente de trabalho.',
-    author: 'Maria Silva',
-    authorInitials: 'MS',
-    votes: 23,
-    comments: 8,
-    status: 'under-review',
-    category: 'Tecnologia',
-    date: '2024-01-10',
-    implementation: 'medium',
-    userVoted: false
-  },
-  {
-    id: 2,
-    title: 'Horário flexível para toda equipe',
-    description: 'Implementar horário flexível de 6h às 22h, permitindo que cada colaborador escolha seu período de trabalho.',
-    author: 'João Santos',
-    authorInitials: 'JS',
-    votes: 45,
-    comments: 15,
-    status: 'approved',
-    category: 'Cultura',
-    date: '2024-01-08',
-    implementation: 'high',
-    userVoted: true
-  },
-  {
-    id: 3,
-    title: 'Espaço de descompressão',
-    description: 'Criar uma sala com jogos, sofás e plantas para momentos de relaxamento e interação informal.',
-    author: 'Ana Costa',
-    authorInitials: 'AC',
-    votes: 67,
-    comments: 22,
-    status: 'implemented',
-    category: 'Ambiente',
-    date: '2024-01-05',
-    implementation: 'high',
-    userVoted: false
-  },
-  {
-    id: 4,
-    title: 'Sistema de carona solidária',
-    description: 'Plataforma interna para compartilhamento de caronas entre colaboradores, reduzindo custos e impacto ambiental.',
-    author: 'Pedro Lima',
-    authorInitials: 'PL',
-    votes: 12,
-    comments: 4,
-    status: 'voting',
-    category: 'Sustentabilidade',
-    date: '2024-01-09',
-    implementation: 'low',
-    userVoted: false
-  },
-  {
-    id: 5,
-    title: 'Laboratório de inovação',
-    description: 'Espaço dedicado para prototipagem e testes de novas ideias, com ferramentas de design thinking.',
-    author: 'Carla Mendes',
-    authorInitials: 'CM',
-    votes: 34,
-    comments: 11,
-    status: 'under-review',
-    category: 'Inovação',
-    date: '2024-01-07',
-    implementation: 'high',
-    userVoted: false
-  }
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { MockDatabase, Suggestion } from '@/data/mockData';
 
 export default function Suggestions() {
-  const [suggestionList, setSuggestionList] = useState(suggestions);
+  const { user, company } = useAuth();
+  const { toast } = useToast();
+  
+  // Buscar sugestões da empresa
+  const [suggestionList, setSuggestionList] = useState<Suggestion[]>(() => {
+    return company ? MockDatabase.getSuggestionsByCompany(company.id) : [];
+  });
+  
+  // Estado para votos do usuário
+  const [userVotes, setUserVotes] = useState<Record<string, boolean>>(() => {
+    const stored = localStorage.getItem(`votes_${user?.id}`);
+    return stored ? JSON.parse(stored) : {};
+  });
+
   const [newSuggestion, setNewSuggestion] = useState({
     title: '',
     description: '',
     category: ''
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { toast } = useToast();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -149,26 +90,34 @@ export default function Suggestions() {
     }
   };
 
-  const handleVote = (suggestionId: number) => {
-    setSuggestionList(prev => prev.map(suggestion => 
+  const handleVote = (suggestionId: string) => {
+    if (!user || !company) return;
+    
+    const hasVoted = userVotes[suggestionId];
+    const newVotes = { ...userVotes, [suggestionId]: !hasVoted };
+    setUserVotes(newVotes);
+    localStorage.setItem(`votes_${user.id}`, JSON.stringify(newVotes));
+    
+    const updatedSuggestions = suggestionList.map(suggestion => 
       suggestion.id === suggestionId 
         ? { 
             ...suggestion, 
-            votes: suggestion.userVoted ? suggestion.votes - 1 : suggestion.votes + 1,
-            userVoted: !suggestion.userVoted
+            votes: hasVoted ? suggestion.votes - 1 : suggestion.votes + 1
           }
         : suggestion
-    ));
+    );
     
-    const suggestion = suggestionList.find(s => s.id === suggestionId);
+    setSuggestionList(updatedSuggestions);
+    MockDatabase.saveSuggestions(company.id, updatedSuggestions);
+    
     toast({
-      title: suggestion?.userVoted ? "Voto removido!" : "Voto computado!",
-      description: suggestion?.userVoted ? "Seu voto foi removido." : "Obrigado por votar nesta sugestão.",
+      title: hasVoted ? "Voto removido!" : "Voto computado!",
+      description: hasVoted ? "Seu voto foi removido." : "Obrigado por votar nesta sugestão.",
     });
   };
 
   const handleCreateSuggestion = () => {
-    if (!newSuggestion.title || !newSuggestion.description || !newSuggestion.category) {
+    if (!user || !company || !newSuggestion.title || !newSuggestion.description || !newSuggestion.category) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos para criar a sugestão.",
@@ -177,22 +126,30 @@ export default function Suggestions() {
       return;
     }
 
-    const suggestion = {
-      id: suggestionList.length + 1,
+    const suggestion: Suggestion = {
+      id: Date.now().toString(),
       title: newSuggestion.title,
       description: newSuggestion.description,
-      author: 'Você',
-      authorInitials: 'VC',
-      votes: 1,
-      comments: 0,
-      status: 'voting',
       category: newSuggestion.category,
-      date: new Date().toISOString().split('T')[0],
-      implementation: 'medium',
-      userVoted: true
+      user_id: user.id,
+      company_id: company.id,
+      votes: 1,
+      status: 'voting',
+      implementation_complexity: 'medium',
+      estimated_impact: 'medium',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
-    setSuggestionList(prev => [suggestion, ...prev]);
+    const updatedSuggestions = [suggestion, ...suggestionList];
+    setSuggestionList(updatedSuggestions);
+    MockDatabase.saveSuggestions(company.id, updatedSuggestions);
+    
+    // Marcar como votado pelo criador
+    const newVotes = { ...userVotes, [suggestion.id]: true };
+    setUserVotes(newVotes);
+    localStorage.setItem(`votes_${user.id}`, JSON.stringify(newVotes));
+    
     setNewSuggestion({ title: '', description: '', category: '' });
     setIsDialogOpen(false);
     
@@ -310,20 +267,17 @@ export default function Suggestions() {
                     <CardDescription>{suggestion.description}</CardDescription>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">{suggestion.authorInitials}</AvatarFallback>
-                        </Avatar>
-                        <span>{suggestion.author}</span>
+                        <span>Sugestão #{suggestion.id.slice(-4)}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        <span>{new Date(suggestion.date).toLocaleDateString('pt-BR')}</span>
+                        <span>{new Date(suggestion.created_at).toLocaleDateString('pt-BR')}</span>
                       </div>
                       <div className={`text-xs px-2 py-1 rounded-full ${getCategoryColor(suggestion.category)}`}>
                         {suggestion.category}
                       </div>
-                      <div className={`text-xs ${getImplementationColor(suggestion.implementation)}`}>
-                        {getImplementationText(suggestion.implementation)}
+                      <div className={`text-xs ${getImplementationColor(suggestion.implementation_complexity)}`}>
+                        {getImplementationText(suggestion.implementation_complexity)}
                       </div>
                     </div>
                   </div>
@@ -347,18 +301,18 @@ export default function Suggestions() {
                       className="flex items-center gap-1"
                     >
                       <MessageSquare className="h-4 w-4" />
-                      {suggestion.comments} comentários
+                      0 comentários
                     </Button>
                   </div>
 
                   <div className="flex items-center gap-2">
                     {suggestion.status === 'voting' && (
                       <Button 
-                        variant={suggestion.userVoted ? "outline" : "hero"} 
+                        variant={userVotes[suggestion.id] ? "outline" : "hero"} 
                         size="sm"
                         onClick={() => handleVote(suggestion.id)}
                       >
-                        {suggestion.userVoted ? "Votado" : "Votar"}
+                        {userVotes[suggestion.id] ? "Votado" : "Votar"}
                       </Button>
                     )}
                     <Button variant="outline" size="sm">

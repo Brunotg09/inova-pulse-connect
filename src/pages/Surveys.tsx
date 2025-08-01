@@ -5,55 +5,21 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserCheck, Calendar, Users, TrendingUp, CheckCircle, Clock } from 'lucide-react';
 import { DashboardLayout } from '@/components/Layout/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import { MockDatabase } from '@/data/mockData';
 
-const surveys = {
-  active: [
-    {
-      id: 1,
-      title: 'Pesquisa de Clima - Janeiro 2024',
-      description: 'Avalie sua satisfação com o ambiente de trabalho este mês',
-      responses: 45,
-      totalEmployees: 60,
-      deadline: '2024-01-15',
-      estimatedTime: '5 min',
-      status: 'active'
-    },
-    {
-      id: 2,
-      title: 'Feedback sobre Home Office',
-      description: 'Compartilhe sua experiência com o trabalho remoto',
-      responses: 28,
-      totalEmployees: 60,
-      deadline: '2024-01-20',
-      estimatedTime: '3 min',
-      status: 'active'
-    }
-  ],
-  completed: [
-    {
-      id: 3,
-      title: 'Satisfação com Benefícios',
-      description: 'Pesquisa sobre benefícios corporativos',
-      responses: 58,
-      totalEmployees: 60,
-      deadline: '2024-01-05',
-      estimatedTime: '7 min',
-      status: 'completed',
-      score: 8.2
-    },
-    {
-      id: 4,
-      title: 'Comunicação Interna',
-      description: 'Como você avalia nossa comunicação interna?',
-      responses: 55,
-      totalEmployees: 60,
-      deadline: '2023-12-20',
-      estimatedTime: '4 min',
-      status: 'completed',
-      score: 7.8
-    }
-  ]
-};
+export default function Surveys() {
+  const { user, company } = useAuth();
+  
+  // Buscar pesquisas da empresa
+  const allSurveys = company ? MockDatabase.getSurveysByCompany(company.id) : [];
+  const totalEmployees = company ? company.employees_count : 0;
+  
+  // Separar pesquisas por status
+  const surveys = {
+    active: allSurveys.filter(s => s.status === 'active'),
+    completed: allSurveys.filter(s => s.status === 'closed')
+  };
 
 const pulseData = [
   { week: 'Semana 1', mood: 85, participation: 92 },
@@ -62,7 +28,6 @@ const pulseData = [
   { week: 'Semana 4', mood: 88, participation: 95 }
 ];
 
-export default function Surveys() {
   const getProgressPercentage = (responses: number, total: number) => {
     return Math.round((responses / total) * 100);
   };
@@ -91,7 +56,7 @@ export default function Surveys() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">4</div>
+              <div className="text-2xl font-bold">{allSurveys.length}</div>
               <p className="text-xs text-muted-foreground">Pesquisas este mês</p>
             </CardContent>
           </Card>
@@ -109,7 +74,7 @@ export default function Surveys() {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">186</div>
+              <div className="text-2xl font-bold">{allSurveys.length * Math.floor(totalEmployees * 0.8)}</div>
               <p className="text-xs text-muted-foreground">Total de respostas</p>
             </CardContent>
           </Card>
@@ -143,9 +108,9 @@ export default function Surveys() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Participação</span>
-                      <span>{survey.responses}/{survey.totalEmployees} ({getProgressPercentage(survey.responses, survey.totalEmployees)}%)</span>
+                      <span>{Math.floor(totalEmployees * 0.7)}/{totalEmployees} ({getProgressPercentage(Math.floor(totalEmployees * 0.7), totalEmployees)}%)</span>
                     </div>
-                    <Progress value={getProgressPercentage(survey.responses, survey.totalEmployees)} />
+                    <Progress value={getProgressPercentage(Math.floor(totalEmployees * 0.7), totalEmployees)} />
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -189,9 +154,9 @@ export default function Surveys() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Participação final</span>
-                      <span>{survey.responses}/{survey.totalEmployees} ({getProgressPercentage(survey.responses, survey.totalEmployees)}%)</span>
+                      <span>{Math.floor(totalEmployees * 0.9)}/{totalEmployees} ({getProgressPercentage(Math.floor(totalEmployees * 0.9), totalEmployees)}%)</span>
                     </div>
-                    <Progress value={getProgressPercentage(survey.responses, survey.totalEmployees)} />
+                    <Progress value={getProgressPercentage(Math.floor(totalEmployees * 0.9), totalEmployees)} />
                   </div>
                   
                   <div className="flex items-center justify-between">

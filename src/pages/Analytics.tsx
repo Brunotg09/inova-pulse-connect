@@ -4,8 +4,23 @@ import { BarChart3, TrendingUp, Users, Target, Calendar, Download } from 'lucide
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { DashboardLayout } from '@/components/Layout/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import { MockDatabase } from '@/data/mockData';
 
 export default function Analytics() {
+  const { company } = useAuth();
+  const analytics = company ? MockDatabase.getAnalytics(company.id) : null;
+
+  if (!analytics) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p>Carregando analytics...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -28,9 +43,9 @@ export default function Analytics() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">85%</div>
-              <p className="text-xs text-muted-foreground">+12% vs mês anterior</p>
-              <Progress value={85} className="mt-2" />
+              <div className="text-2xl font-bold text-primary">{analytics.engagement.rate}%</div>
+              <p className="text-xs text-muted-foreground">{analytics.engagement.trend} vs mês anterior</p>
+              <Progress value={analytics.engagement.rate} className="mt-2" />
             </CardContent>
           </Card>
 
@@ -40,9 +55,9 @@ export default function Analytics() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-secondary">92%</div>
-              <p className="text-xs text-muted-foreground">55 de 60 colaboradores</p>
-              <Progress value={92} className="mt-2" />
+              <div className="text-2xl font-bold text-secondary">{analytics.engagement.participation_rate}%</div>
+              <p className="text-xs text-muted-foreground">{analytics.users.active_last_week} de {analytics.users.total} colaboradores</p>
+              <Progress value={analytics.engagement.participation_rate} className="mt-2" />
             </CardContent>
           </Card>
 
@@ -52,9 +67,9 @@ export default function Analytics() {
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-accent">8.2/10</div>
+              <div className="text-2xl font-bold text-accent">{analytics.feedback.average_rating}/5</div>
               <p className="text-xs text-muted-foreground">Meta: 8.0 atingida!</p>
-              <Progress value={82} className="mt-2" />
+              <Progress value={(analytics.feedback.average_rating / 5) * 100} className="mt-2" />
             </CardContent>
           </Card>
 
@@ -64,9 +79,9 @@ export default function Analytics() {
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">de 23 sugestões (52%)</p>
-              <Progress value={52} className="mt-2" />
+              <div className="text-2xl font-bold">{analytics.suggestions.implemented}</div>
+              <p className="text-xs text-muted-foreground">de {analytics.suggestions.total} sugestões ({Math.round((analytics.suggestions.implemented / analytics.suggestions.total) * 100)}%)</p>
+              <Progress value={(analytics.suggestions.implemented / analytics.suggestions.total) * 100} className="mt-2" />
             </CardContent>
           </Card>
         </div>
@@ -87,34 +102,18 @@ export default function Analytics() {
                   <CardDescription>Participação em atividades nos últimos 30 dias</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Tecnologia</span>
-                      <span className="font-medium">95%</span>
-                    </div>
-                    <Progress value={95} />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Marketing</span>
-                      <span className="font-medium">88%</span>
-                    </div>
-                    <Progress value={88} />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Vendas</span>
-                      <span className="font-medium">82%</span>
-                    </div>
-                    <Progress value={82} />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>RH</span>
-                      <span className="font-medium">78%</span>
-                    </div>
-                    <Progress value={78} />
-                  </div>
+                  {Object.entries(analytics.users.by_department).map(([dept, count]) => {
+                    const percentage = Math.round((count / analytics.users.total) * 100);
+                    return (
+                      <div key={dept} className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>{dept}</span>
+                          <span className="font-medium">{percentage}%</span>
+                        </div>
+                        <Progress value={percentage} />
+                      </div>
+                    );
+                  })}
                 </CardContent>
               </Card>
 
@@ -156,17 +155,17 @@ export default function Analytics() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-primary">24</div>
+                    <div className="text-3xl font-bold text-primary">{analytics.challenges.active}</div>
                     <p className="text-sm text-muted-foreground">Desafios finalizados</p>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm">Taxa de participação</span>
-                      <span className="font-medium">89%</span>
+                      <span className="font-medium">{analytics.challenges.participation_rate}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Média de submissões</span>
-                      <span className="font-medium">12/desafio</span>
+                      <span className="font-medium">{Math.round(analytics.challenges.total_submissions / Math.max(analytics.challenges.active, 1))}/desafio</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Qualidade média</span>
@@ -184,31 +183,24 @@ export default function Analytics() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span>Tecnologia</span>
-                      <span className="font-medium">35%</span>
+                      <span>Positivo</span>
+                      <span className="font-medium text-green-600">{Math.round((analytics.feedback.positive / analytics.feedback.total) * 100)}%</span>
                     </div>
-                    <Progress value={35} />
+                    <Progress value={(analytics.feedback.positive / analytics.feedback.total) * 100} className="[&>div]:bg-green-500" />
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span>Processos</span>
-                      <span className="font-medium">28%</span>
+                      <span>Neutro</span>
+                      <span className="font-medium text-yellow-600">{Math.round((analytics.feedback.neutral / analytics.feedback.total) * 100)}%</span>
                     </div>
-                    <Progress value={28} />
+                    <Progress value={(analytics.feedback.neutral / analytics.feedback.total) * 100} className="[&>div]:bg-yellow-500" />
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span>Ambiente</span>
-                      <span className="font-medium">22%</span>
+                      <span>Negativo</span>
+                      <span className="font-medium text-red-600">{Math.round((analytics.feedback.negative / analytics.feedback.total) * 100)}%</span>
                     </div>
-                    <Progress value={22} />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Benefícios</span>
-                      <span className="font-medium">15%</span>
-                    </div>
-                    <Progress value={15} />
+                    <Progress value={(analytics.feedback.negative / analytics.feedback.total) * 100} className="[&>div]:bg-red-500" />
                   </div>
                 </CardContent>
               </Card>
