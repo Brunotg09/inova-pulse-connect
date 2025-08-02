@@ -10,17 +10,17 @@ import { useToast } from '@/hooks/use-toast';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, user, loading } = useAuth();
+  const { signIn, user, loading } = useAuth();
   const { toast } = useToast();
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={`/${user.company?.slug || 'dashboard'}`} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(email, password);
+      await signIn(email, password);
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo ao InovaPulse",
@@ -28,7 +28,7 @@ export default function Login() {
     } catch (error) {
       toast({
         title: "Erro no login",
-        description: "Verifique suas credenciais e tente novamente",
+        description: error instanceof Error ? error.message : "Verifique suas credenciais e tente novamente",
         variant: "destructive",
       });
     }

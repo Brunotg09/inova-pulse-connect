@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CompanyRegister() {
   const { companySlug } = useParams<{ companySlug: string }>();
@@ -14,22 +15,29 @@ export default function CompanyRegister() {
   const [department, setDepartment] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      // Mock registration - replace with Supabase integration
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!companySlug) throw new Error('Company not found');
+      
+      await signUp(email, password, {
+        name,
+        companySlug,
+        department
+      });
+      
       toast({
         title: "Conta criada com sucesso!",
-        description: `Bem-vindo à ${companySlug}! Você receberá um email de confirmação.`,
+        description: `Bem-vindo à ${companySlug}! Verifique seu email para confirmar a conta.`,
       });
     } catch (error) {
       toast({
         title: "Erro no cadastro",
-        description: "Tente novamente mais tarde",
+        description: error instanceof Error ? error.message : "Tente novamente mais tarde",
         variant: "destructive",
       });
     } finally {

@@ -1,76 +1,88 @@
 import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building2, Users, Trophy, Lightbulb, TrendingUp, ArrowRight } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import type { Database } from '@/lib/supabase';
 
-// Mock data para diferentes empresas
-const companies = {
-  'inovatech': {
-    id: '1',
-    name: 'InovaTech Solutions',
-    slug: 'inovatech',
-    description: 'Transformando ideias em soluções tecnológicas inovadoras',
-    logo: '🚀',
-    plan: 'enterprise',
-    employees_count: 120,
-    stats: {
-      challenges_active: 8,
-      suggestions_month: 45,
-      engagement_rate: 92,
-      innovations_implemented: 23
-    },
-    theme: {
-      primary: 'bg-blue-600',
-      secondary: 'bg-purple-600',
-      accent: 'bg-green-600'
-    }
-  },
-  'techcorp': {
-    id: '2',
-    name: 'TechCorp Brasil',
-    slug: 'techcorp',
-    description: 'Liderando a transformação digital no Brasil',
-    logo: '⚡',
-    plan: 'pro',
-    employees_count: 85,
-    stats: {
-      challenges_active: 5,
-      suggestions_month: 28,
-      engagement_rate: 87,
-      innovations_implemented: 15
-    },
-    theme: {
-      primary: 'bg-indigo-600',
-      secondary: 'bg-pink-600',
-      accent: 'bg-orange-600'
-    }
-  },
-  'demo': {
-    id: '3',
-    name: 'Demo Company',
-    slug: 'demo',
-    description: 'Empresa de demonstração do InovaPulse',
-    logo: '🎯',
-    plan: 'free',
-    employees_count: 25,
-    stats: {
-      challenges_active: 2,
-      suggestions_month: 12,
-      engagement_rate: 78,
-      innovations_implemented: 5
-    },
-    theme: {
-      primary: 'bg-gray-600',
-      secondary: 'bg-slate-600',
-      accent: 'bg-zinc-600'
-    }
-  }
-};
+type Company = Database['public']['Tables']['companies']['Row'];
 
 export default function CompanyLanding() {
   const { companySlug } = useParams<{ companySlug: string }>();
-  const company = companies[companySlug as keyof typeof companies];
+  const [company, setCompany] = useState<Company | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    challenges_active: 0,
+    suggestions_month: 0,
+    engagement_rate: 0,
+    innovations_implemented: 0
+  });
+
+  useEffect(() => {
+    if (companySlug) {
+      loadCompanyData();
+    }
+  }, [companySlug]);
+
+  const loadCompanyData = async () => {
+    try {
+      const { data: companyData, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('slug', companySlug)
+        .single();
+
+      if (error) throw error;
+      setCompany(companyData);
+
+      // Load company stats
+      const [challengesResult, suggestionsResult] = await Promise.all([
+        supabase
+          .from('challenges')
+          .select('id, status')
+          .eq('company_id', companyData.id),
+        supabase
+          .from('suggestions')
+          .select('id, status, created_at')
+          .eq('company_id', companyData.id)
+      ]);
+
+      const challenges = challengesResult.data || [];
+      const suggestions = suggestionsResult.data || [];
+      
+      // Calculate stats
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      
+      setStats({
+        challenges_active: challenges.filter(c => c.status === 'active').length,
+        suggestions_month: suggestions.filter(s => {
+          const createdDate = new Date(s.created_at);
+          return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
+        }).length,
+        engagement_rate: Math.floor(Math.random() * 20) + 80, // Mock for now
+        innovations_implemented: suggestions.filter(s => s.status === 'implemented').length
+      });
+
+    } catch (error) {
+      console.error('Error loading company data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-xl text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!company) {
     return (
@@ -106,23 +118,23 @@ export default function CompanyLanding() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-10 h-10 bg-gradient-hero rounded-lg flex items-center justify-center text-2xl">
-              {company.logo}
+              {company.logo || '🏢'}
             </div>
             <div>
               <h1 className="font-bold text-xl">{company.name}</h1>
-              <p className="text-sm text-muted-foreground">{company.description}</p>
+              <p className="text-sm text-muted-foreground">Transformando através da inovação</p>
             </div>
             {getPlanBadge(company.plan)}
           </div>
           
           <div className="flex items-center space-x-4">
             <Button variant="ghost" asChild>
-              <Link to={`/${company.slug}/login`}>
+              <Link to={`/${companySlug}/login`}>
                 Login
               </Link>
             </Button>
             <Button variant="hero" asChild>
-              <Link to={`/${company.slug}/register`}>
+              <Link to={`/${companySlug}/register`}>
                 Acessar Plataforma
               </Link>
             </Button>
@@ -134,7 +146,7 @@ export default function CompanyLanding() {
       <section className="py-20 px-4">
         <div className="container mx-auto text-center">
           <div className="space-y-6 max-w-4xl mx-auto">
-            <div className="text-6xl mb-6">{company.logo}</div>
+            <div className="text-6xl mb-6">{company.logo || '🏢'}</div>
             <h1 className="text-5xl font-bold">
               Bem-vindo à{" "}
               <span className="bg-gradient-innovation bg-clip-text text-transparent">
@@ -142,11 +154,11 @@ export default function CompanyLanding() {
               </span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              {company.description}
+              Plataforma de inovação e engajamento para sua equipe
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button variant="hero" size="lg" asChild>
-                <Link to={`/${company.slug}/login`}>
+                <Link to={`/${companySlug}/login`}>
                   <Building2 className="mr-2 h-5 w-5" />
                   Acessar Dashboard
                 </Link>
@@ -171,7 +183,7 @@ export default function CompanyLanding() {
             <Card className="text-center">
               <CardHeader>
                 <Trophy className="h-8 w-8 mx-auto text-primary" />
-                <CardTitle className="text-2xl">{company.stats.challenges_active}</CardTitle>
+                <CardTitle className="text-2xl">{stats.challenges_active}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">Desafios Ativos</p>
@@ -181,7 +193,7 @@ export default function CompanyLanding() {
             <Card className="text-center">
               <CardHeader>
                 <Lightbulb className="h-8 w-8 mx-auto text-secondary" />
-                <CardTitle className="text-2xl">{company.stats.suggestions_month}</CardTitle>
+                <CardTitle className="text-2xl">{stats.suggestions_month}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">Sugestões este Mês</p>
@@ -191,7 +203,7 @@ export default function CompanyLanding() {
             <Card className="text-center">
               <CardHeader>
                 <TrendingUp className="h-8 w-8 mx-auto text-accent" />
-                <CardTitle className="text-2xl">{company.stats.engagement_rate}%</CardTitle>
+                <CardTitle className="text-2xl">{stats.engagement_rate}%</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">Taxa de Engajamento</p>
@@ -201,7 +213,7 @@ export default function CompanyLanding() {
             <Card className="text-center">
               <CardHeader>
                 <Users className="h-8 w-8 mx-auto text-primary" />
-                <CardTitle className="text-2xl">{company.stats.innovations_implemented}</CardTitle>
+                <CardTitle className="text-2xl">{stats.innovations_implemented}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">Inovações Implementadas</p>
@@ -225,13 +237,13 @@ export default function CompanyLanding() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button variant="secondary" size="lg" asChild>
-                  <Link to={`/${company.slug}/login`}>
+                  <Link to={`/${companySlug}/login`}>
                     Fazer Login
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" className="bg-transparent border-white text-white hover:bg-white hover:text-primary" asChild>
-                  <Link to={`/${company.slug}/register`}>
+                  <Link to={`/${companySlug}/register`}>
                     Criar Conta
                   </Link>
                 </Button>
